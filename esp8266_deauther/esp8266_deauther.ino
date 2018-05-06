@@ -23,6 +23,7 @@ extern "C" {
 #include "Neopixel.h"
 #include "A_config.h"
 #include "webfiles.h"
+#include <CommandParser.h>
 
 #ifdef DIGITAL_LED
 DigitalLed led;

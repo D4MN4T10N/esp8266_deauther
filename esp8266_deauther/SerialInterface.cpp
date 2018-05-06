@@ -13,6 +13,62 @@
 
 SerialInterface::SerialInterface() {
   list = new SimpleList<String>;
+
+  cli = new CommandParser();
+  
+  cli->addCommand(new EmptyCmd_P(CLI_HELP, [](Cmd* cmd){
+    prntln(CLI_HELP_HEADER);
+
+    prntln(CLI_HELP_HELP);
+    prntln(CLI_HELP_SCAN);
+    prntln(CLI_HELP_SHOW);
+    prntln(CLI_HELP_SELECT);
+    prntln(CLI_HELP_DESELECT);
+    prntln(CLI_HELP_SSID_A);
+    prntln(CLI_HELP_SSID_B);
+    prntln(CLI_HELP_SSID_C);
+    prntln(CLI_HELP_NAME_A);
+    prntln(CLI_HELP_NAME_B);
+    prntln(CLI_HELP_NAME_C);
+    prntln(CLI_HELP_SET_NAME);
+    prntln(CLI_HELP_ENABLE_RANDOM);
+    prntln(CLI_HELP_DISABLE_RANDOM);
+    prntln(CLI_HELP_LOAD);
+    prntln(CLI_HELP_SAVE);
+    prntln(CLI_HELP_REMOVE_A);
+    prntln(CLI_HELP_REMOVE_B);
+    prntln(CLI_HELP_ATTACK);
+    prntln(CLI_HELP_ATTACK_STATUS);
+    prntln(CLI_HELP_STOP);
+    prntln(CLI_HELP_SYSINFO);
+    prntln(CLI_HELP_CLEAR);
+    prntln(CLI_HELP_FORMAT);
+    prntln(CLI_HELP_PRINT);
+    prntln(CLI_HELP_DELETE);
+    prntln(CLI_HELP_REPLACE);
+    prntln(CLI_HELP_COPY);
+    prntln(CLI_HELP_RENAME);
+    prntln(CLI_HELP_RUN);
+    prntln(CLI_HELP_WRITE);
+    prntln(CLI_HELP_GET);
+    prntln(CLI_HELP_SET);
+    prntln(CLI_HELP_RESET);
+    prntln(CLI_HELP_CHICKEN);
+    prntln(CLI_HELP_REBOOT);
+    prntln(CLI_HELP_INFO);
+    prntln(CLI_HELP_COMMENT);
+    prntln(CLI_HELP_SEND_DEAUTH);
+    prntln(CLI_HELP_SEND_BEACON);
+    prntln(CLI_HELP_SEND_PROBE);
+    prntln(CLI_HELP_LED_A);
+    prntln(CLI_HELP_LED_B);
+    prntln(CLI_HELP_LED_ENABLE);
+    prntln(CLI_HELP_DRAW);
+    prntln(CLI_HELP_SCREEN_ON);
+    prntln(CLI_HELP_SCREEN_MODE);
+
+    prntln(CLI_HELP_FOOTER);
+  }));
 }
 
 void SerialInterface::load() {
@@ -118,8 +174,17 @@ void SerialInterface::update() {
     
     loopTime = currentTime;
   } else {
-    if (enabled && Serial.available() > 0)
-      runCommands(Serial.readStringUntil(NEWLINE));
+    if (enabled && Serial.available()) {
+      String tmp = Serial.readStringUntil('\n');
+      if(tmp.length() > 0){
+        Serial.print("# ");
+        Serial.println(tmp);
+        cli->parse(tmp);
+      }
+    }
+  
+    //if (enabled && Serial.available() > 0)
+      //runCommands(Serial.readStringUntil(NEWLINE));
     if (continuously) {
       if (currentTime - loopTime > continueTime)
         executing = true;
@@ -206,61 +271,6 @@ void SerialInterface::runCommand(String input) {
   }
   
   if (list->size() == 0) return;
-
-  // ===== HELP ===== //
-  if (eqlsCMD(0, CLI_HELP)) {
-    prntln(CLI_HELP_HEADER);
-
-    prntln(CLI_HELP_HELP);
-    prntln(CLI_HELP_SCAN);
-    prntln(CLI_HELP_SHOW);
-    prntln(CLI_HELP_SELECT);
-    prntln(CLI_HELP_DESELECT);
-    prntln(CLI_HELP_SSID_A);
-    prntln(CLI_HELP_SSID_B);
-    prntln(CLI_HELP_SSID_C);
-    prntln(CLI_HELP_NAME_A);
-    prntln(CLI_HELP_NAME_B);
-    prntln(CLI_HELP_NAME_C);
-    prntln(CLI_HELP_SET_NAME);
-    prntln(CLI_HELP_ENABLE_RANDOM);
-    prntln(CLI_HELP_DISABLE_RANDOM);
-    prntln(CLI_HELP_LOAD);
-    prntln(CLI_HELP_SAVE);
-    prntln(CLI_HELP_REMOVE_A);
-    prntln(CLI_HELP_REMOVE_B);
-    prntln(CLI_HELP_ATTACK);
-    prntln(CLI_HELP_ATTACK_STATUS);
-    prntln(CLI_HELP_STOP);
-    prntln(CLI_HELP_SYSINFO);
-    prntln(CLI_HELP_CLEAR);
-    prntln(CLI_HELP_FORMAT);
-    prntln(CLI_HELP_PRINT);
-    prntln(CLI_HELP_DELETE);
-    prntln(CLI_HELP_REPLACE);
-    prntln(CLI_HELP_COPY);
-    prntln(CLI_HELP_RENAME);
-    prntln(CLI_HELP_RUN);
-    prntln(CLI_HELP_WRITE);
-    prntln(CLI_HELP_GET);
-    prntln(CLI_HELP_SET);
-    prntln(CLI_HELP_RESET);
-    prntln(CLI_HELP_CHICKEN);
-    prntln(CLI_HELP_REBOOT);
-    prntln(CLI_HELP_INFO);
-    prntln(CLI_HELP_COMMENT);
-    prntln(CLI_HELP_SEND_DEAUTH);
-    prntln(CLI_HELP_SEND_BEACON);
-    prntln(CLI_HELP_SEND_PROBE);
-    prntln(CLI_HELP_LED_A);
-    prntln(CLI_HELP_LED_B);
-    prntln(CLI_HELP_LED_ENABLE);
-    prntln(CLI_HELP_DRAW);
-    prntln(CLI_HELP_SCREEN_ON);
-    prntln(CLI_HELP_SCREEN_MODE);
-
-    prntln(CLI_HELP_FOOTER);
-  }
 
   // ===== SCAN ===== //
   // scan [<mode>] [-t <time>] [-c <continue-time>] [-ch <channel>]
