@@ -15,7 +15,16 @@ SerialInterface::SerialInterface() {
   list = new SimpleList<String>;
 
   cli = new CommandParser();
-  
+
+  // ===== NOT FOUND ===== //
+  cli->onNotFound = [](String input){
+    prnt(CLI_ERROR_NOT_FOUND_A);
+    prnt(input);
+    prntln(CLI_ERROR_NOT_FOUND_B);
+  };
+
+  // ===== HELP ===== //
+  // help
   cli->addCommand(new EmptyCmd_P(CLI_HELP, [](Cmd* cmd){
     prntln(CLI_HELP_HEADER);
 
@@ -69,6 +78,97 @@ SerialInterface::SerialInterface() {
 
     prntln(CLI_HELP_FOOTER);
   }));
+
+  // ===== SYSTEM ===== //
+  // sysinfo
+  cli->addCommand(new EmptyCmd_P(CLI_SYSINFO, [](Cmd* cmd){
+    prntln(CLI_SYSTEM_INFO);
+    char s[150];
+    sprintf(s,str(CLI_SYSTEM_OUTPUT).c_str(), 81920 - system_get_free_heap_size(), 100 - system_get_free_heap_size() / (81920 / 100), system_get_free_heap_size(), system_get_free_heap_size() / (81920 / 100), 81920);
+    prntln(String(s));
+    
+    prnt(CLI_SYSTEM_CHANNEL);
+    prntln(settings.getChannel());
+
+    uint8_t mac[6];
+    
+    prnt(CLI_SYSTEM_AP_MAC);
+    wifi_get_macaddr(SOFTAP_IF, mac);
+    prntln(macToStr(mac));
+
+    prnt(CLI_SYSTEM_ST_MAC);
+    wifi_get_macaddr(STATION_IF, mac);
+    prntln(macToStr(mac));
+
+    FSInfo fs_info;
+    SPIFFS.info(fs_info);
+    sprintf(s,str(CLI_SYSTEM_RAM_OUT).c_str(), fs_info.usedBytes, fs_info.usedBytes / (fs_info.totalBytes / 100), fs_info.totalBytes - fs_info.usedBytes, (fs_info.totalBytes - fs_info.usedBytes) / (fs_info.totalBytes / 100), fs_info.totalBytes);
+    prnt(String(s));
+    sprintf(s,str(CLI_SYSTEM_SPIFFS_OUT).c_str(), fs_info.blockSize, fs_info.pageSize);
+    prnt(String(s));
+    prntln(CLI_FILES);
+    Dir dir = SPIFFS.openDir(String(SLASH));
+    while (dir.next()) {
+      prnt(String(SPACE) + String(SPACE) + dir.fileName() + String(SPACE));
+      File f = dir.openFile("r");
+      prnt(int(f.size()));
+      prntln(str(CLI_BYTES));
+    }
+    printWifiStatus();
+    prntln(CLI_SYSTEM_FOOTER);
+  }));
+
+  // ====== CHICKEN ===== //
+  cli->addCommand(new EmptyCmd_P(CLI_CHICKEN, [](Cmd* cmd){
+    prntln(CLI_CHICKEN_OUTPUT);
+  }));
+  
+  // ====== RICE ===== //
+  // => have you tried putting it into a bowl of rice?
+  // funny command to mess with people, please don't share the info thanks <3
+  Command_P* riceCmd = new Command_P(CLI_RICE, [](Cmd* cmd){
+    prntln(CLI_RICE_START);
+    uint32_t i = 0;
+    uint8_t multi = cmd->value(0).toInt();
+    uint8_t end = random(80, 99);
+    if(multi == 0) multi = 1;
+    while (true) {
+      if (i % 10 == 0 && i > 0) {
+        char s[100];
+        sprintf_P(s,CLI_RICE_OUTPUT, i / 10);
+        prnt(String(s));
+        if ((i / 10) == end) {
+          prnt(CLI_RICE_ERROR);
+          prnt(String(random(16, 255), HEX));
+          prnt(String(random(16, 255), HEX));
+          prnt(String(random(16, 255), HEX));
+          prntln(String(random(16, 255), HEX));
+          for (int i = 1; i <= 32; i++) {
+            for (int i = 0; i < 2; i++) {
+              for (int i = 1; i <= 8; i++) {
+                prnt(String(random(16, 255), HEX));
+                prnt(SPACE);
+              }
+              prnt(SPACE);
+            }
+            prntln();
+          }
+          ESP.reset();
+        } else if ((i / 10) % 10 == 0) {
+          prnt(CLI_RICE_MEM);
+          prnt(String(random(16, 255), HEX));
+          prnt(String(random(16, 255), HEX));
+          prnt(String(random(16, 255), HEX));
+          prntln(String(random(16, 255), HEX));
+        }
+      }
+      prnt(POINT);
+      delay(100 * multi * multi);
+      i++;
+    }
+  });
+  riceCmd->addArg(new AnonymOptArg("1"));
+  cli->addCommand(riceCmd);
 }
 
 void SerialInterface::load() {
@@ -536,52 +636,7 @@ void SerialInterface::runCommand(String input) {
   else if (eqlsCMD(0, CLI_DISABLE) && eqlsCMD(1, CLI_RANDOM)) {
     ssids.disableRandom();
   }
-
-  // ====== RICE ===== //
-  // => have you tried putting it into a bowl rice?
-  // funny command to mess with people, please don't share the info thanks <3
-  else if (eqlsCMD(0, CLI_RICE)) {
-    prntln(CLI_RICE_START);
-    uint32_t i = 0;
-    uint8_t multi = 1;
-    uint8_t end = random(80, 99);
-    if (list->get(1).toInt() > 1) multi = list->get(1).toInt();
-    while (true) {
-      if (i % 10 == 0 && i > 0) {
-        char s[100];
-        sprintf(s,str(CLI_RICE_OUTPUT).c_str(), i / 10);
-        prnt(String(s));
-        if ((i / 10) == end) {
-          prnt(CLI_RICE_ERROR);
-          prnt(String(random(16, 255), HEX));
-          prnt(String(random(16, 255), HEX));
-          prnt(String(random(16, 255), HEX));
-          prntln(String(random(16, 255), HEX));
-          for (int i = 1; i <= 32; i++) {
-            for (int i = 0; i < 2; i++) {
-              for (int i = 1; i <= 8; i++) {
-                prnt(String(random(16, 255), HEX));
-                prnt(SPACE);
-              }
-              prnt(SPACE);
-            }
-            prntln();
-          }
-          ESP.reset();
-        } else if ((i / 10) % 10 == 0) {
-          prnt(CLI_RICE_MEM);
-          prnt(String(random(16, 255), HEX));
-          prnt(String(random(16, 255), HEX));
-          prnt(String(random(16, 255), HEX));
-          prntln(String(random(16, 255), HEX));
-        }
-      }
-      prnt(POINT);
-      delay(100 * multi * multi);
-      i++;
-    }
-  }
-
+  
   // ===== LOAD/SAVE ===== //
   // save [<type>] [<file>]
   // load [<type>] [<file>]
@@ -659,10 +714,11 @@ void SerialInterface::runCommand(String input) {
     settings.set(list->get(1).c_str(), list->get(2));
   }
 
-  // ====== CHICKEN ===== //
-  else if (eqlsCMD(0, CLI_CHICKEN)) {
-    prntln(CLI_CHICKEN_OUTPUT);
-  }
+
+
+
+
+  
 
   // ===== STOP ===== //
   // stop [<mode>]
@@ -680,45 +736,6 @@ void SerialInterface::runCommand(String input) {
       attack.stop();
       stopScript();
     }
-  }
-
-  // ===== SYSTEM ===== //
-  // sysinfo
-  else if (eqlsCMD(0, CLI_SYSINFO)) {
-    prntln(CLI_SYSTEM_INFO);
-    char s[150];
-    sprintf(s,str(CLI_SYSTEM_OUTPUT).c_str(), 81920 - system_get_free_heap_size(), 100 - system_get_free_heap_size() / (81920 / 100), system_get_free_heap_size(), system_get_free_heap_size() / (81920 / 100), 81920);
-    prntln(String(s));
-    
-    prnt(CLI_SYSTEM_CHANNEL);
-    prntln(settings.getChannel());
-
-    uint8_t mac[6];
-    
-    prnt(CLI_SYSTEM_AP_MAC);
-    wifi_get_macaddr(SOFTAP_IF, mac);
-    prntln(macToStr(mac));
-
-    prnt(CLI_SYSTEM_ST_MAC);
-    wifi_get_macaddr(STATION_IF, mac);
-    prntln(macToStr(mac));
-
-    FSInfo fs_info;
-    SPIFFS.info(fs_info);
-    sprintf(s,str(CLI_SYSTEM_RAM_OUT).c_str(), fs_info.usedBytes, fs_info.usedBytes / (fs_info.totalBytes / 100), fs_info.totalBytes - fs_info.usedBytes, (fs_info.totalBytes - fs_info.usedBytes) / (fs_info.totalBytes / 100), fs_info.totalBytes);
-    prnt(String(s));
-    sprintf(s,str(CLI_SYSTEM_SPIFFS_OUT).c_str(), fs_info.blockSize, fs_info.pageSize);
-    prnt(String(s));
-    prntln(CLI_FILES);
-    Dir dir = SPIFFS.openDir(String(SLASH));
-    while (dir.next()) {
-      prnt(String(SPACE) + String(SPACE) + dir.fileName() + String(SPACE));
-      File f = dir.openFile("r");
-      prnt(int(f.size()));
-      prntln(str(CLI_BYTES));
-    }
-    printWifiStatus();
-    prntln(CLI_SYSTEM_FOOTER);
   }
 
   // ===== RESET ===== //
@@ -1115,20 +1132,6 @@ void SerialInterface::runCommand(String input) {
     }
   }
   
-  // ===== NOT FOUND ===== //
-  else {
-    prnt(CLI_ERROR_NOT_FOUND_A);
-    prnt(input);
-    prntln(CLI_ERROR_NOT_FOUND_B);
-    // some debug stuff
-    /*
-      Serial.println(list->get(0));
-      for(int i=0;i<input.length();i++){
-      Serial.print(input.charAt(i), HEX);
-      Serial.print(' ');
-      }
-    */
-  }
 }
 
 
